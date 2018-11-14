@@ -12,6 +12,7 @@ jupyter = "*"
 scipy = "*"
 tensorflow-gpu = "*"
 opencv-python = "*"
+matplotlib = "*"
 
 [dev-packages]
 
