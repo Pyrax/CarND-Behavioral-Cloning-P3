@@ -21,19 +21,6 @@ app = Flask(__name__)
 model = None
 prev_image_array = None
 
-
-# Fix cuDNN issue:
-import tensorflow as tf
-from keras.backend.tensorflow_backend import set_session
-
-config = tf.ConfigProto(
-    gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.9)
-)
-config.gpu_options.allow_growth = True
-session = tf.Session(config=config)
-set_session(session)
-
-
 class SimplePIController:
     def __init__(self, Kp, Ki):
         self.Kp = Kp

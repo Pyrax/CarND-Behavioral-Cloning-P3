@@ -13,6 +13,10 @@ scipy = "*"
 tensorflow-gpu = "*"
 opencv-python = "*"
 matplotlib = "*"
+python-socketio = "*"
+eventlet = "*"
+flask = "*"
+pillow = "*"
 
 [dev-packages]
 

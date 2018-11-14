@@ -62,5 +62,7 @@ RUN set -ex && pipenv install --deploy --system
 
 # Jupyter
 EXPOSE 8888
+# Flask server
+EXPOSE 4567
 
 CMD pipenv run jupyter notebook --allow-root --port=8888 --ip=0.0.0.0 --NotebookApp.token=
