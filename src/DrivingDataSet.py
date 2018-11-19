@@ -19,36 +19,31 @@ def get_driving_data(log_file_csv):
                        usecols=['Center image', 'Left image', 'Right image', 'Steering'])
 
 
-def parse_data_row(data_path, row):
-    center_image_name, left_image_name, right_image_name, steering = row[0:4]
-
-    center_image = cv2.imread(os.path.join(data_path, center_image_name))
-    return center_image, steering
-
-
 def steering_image_batch_generator(data_path, samples, batch_size=32):
     """
     Generates shuffled batches of image data paired with ground-truth labels by reading
     image files from a list of file names.
 
     :param data_path: directory where to find the image files
-    :param samples: list of image names and steering angles from driving_log.csv
+    :param samples: list of image names and steering angles
     :param batch_size: number of samples each batch should have
     :return: list of [images, labels] of next batch
     """
     num_samples = len(samples)
     # endless loop for batch generation
     while 1:
-        shuffle(samples)
+        shuffled_samples = sklearn.utils.shuffle(samples)
         for offset in range(0, num_samples, batch_size):
-            batch_samples = samples[offset:offset + batch_size]
+            batch_samples = shuffled_samples[offset:offset + batch_size]
 
             images = []
             angles = []
             for batch_sample in batch_samples:
-                center_image, steering = parse_data_row(data_path, batch_sample)
+                image_name = batch_sample[0]
+                steering = batch_sample[1]
+                image = cv2.imread(os.path.join(data_path, image_name))
 
-                images.append(center_image)
+                images.append(image)
                 angles.append(steering)
 
             x_train = np.array(images)
