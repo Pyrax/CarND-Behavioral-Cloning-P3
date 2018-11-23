@@ -32,6 +32,7 @@ def steering_image_batch_generator(data_path, samples, batch_size=32):
     num_samples = len(samples)
     # endless loop for batch generation
     while 1:
+        # Shuffle data at the beginning of each epoch
         shuffled_samples = sklearn.utils.shuffle(samples)
         for offset in range(0, num_samples, batch_size):
             batch_samples = shuffled_samples[offset:offset + batch_size]
@@ -39,9 +40,10 @@ def steering_image_batch_generator(data_path, samples, batch_size=32):
             images = []
             angles = []
             for batch_sample in batch_samples:
-                image_name = batch_sample[0]
+                image_name = batch_sample[0].strip()  # take care of whitespaces in file paths
                 steering = batch_sample[1]
                 image = cv2.imread(os.path.join(data_path, image_name))
+                image = cv2.cvtColor(image, cv2.COLOR_BGR2YUV)
 
                 images.append(image)
                 angles.append(steering)
