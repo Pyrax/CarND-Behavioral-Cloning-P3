@@ -42,8 +42,13 @@ def steering_image_batch_generator(data_path, samples, batch_size=32):
             for batch_sample in batch_samples:
                 image_name = batch_sample[0].strip()  # take care of whitespaces in file paths
                 steering = batch_sample[1]
+                copy_id = batch_sample[2]
+
                 image = cv2.imread(os.path.join(data_path, image_name))
                 image = cv2.cvtColor(image, cv2.COLOR_BGR2YUV)
+
+                if copy_id == 1:
+                    image = np.fliplr(image)
 
                 images.append(image)
                 angles.append(steering)
