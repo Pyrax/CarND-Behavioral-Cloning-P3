@@ -45,7 +45,7 @@ def steering_image_batch_generator(data_path, samples, batch_size=32):
                 copy_id = batch_sample[2]
 
                 image = cv2.imread(os.path.join(data_path, image_name))
-                image = cv2.cvtColor(image, cv2.COLOR_BGR2YUV)
+                image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
                 if copy_id == 1:
                     image = np.fliplr(image)
