@@ -63,12 +63,21 @@ def steering_image_batch_generator(data_path, samples, batch_size=32, augment_da
 
 
 def randomly_augment_data(image, steering):
+    """
+    Randomly perform several augmentation techniques on given data.
+    Includes brightness, salt & pepper noise and image rotation.
+
+    :param image: original image to augment
+    :param steering: original steering angle which might be corrected
+        if augmentation includes shifting for example
+    :return: augmented image, corrected steering angle
+    """
     # Brightness
     should_adjust_brightness = random.choice([False, True])
     # should_adjust_brightness = False
     if should_adjust_brightness:
-        rand_gamma = random.randint(0, len(precomputed_gammas) - 1)
-        image = adjust_brightness(image, precomputed_lut=precomputed_gammas[rand_gamma])
+        random_gamma = random.randint(0, len(precomputed_gammas) - 1)
+        image = adjust_brightness(image, precomputed_lut=precomputed_gammas[random_gamma])
         # random_gamma = random.uniform(0.5, 2.0)
         # image = adjust_brightness(image, random_gamma)
 
@@ -81,7 +90,7 @@ def randomly_augment_data(image, steering):
     # Rotation
     rotation_range = 10.0
     random_rotation = random.uniform(-rotation_range, rotation_range)
-    image, _ = add_rotation(image, steering, random_rotation)
+    image = rotate_image(image, random_rotation)
     return image, steering
 
 
@@ -94,6 +103,13 @@ def add_rotation(image, steering_angle, rotation=0.0):
 
 
 def rotate_image(image, rotation=0.0):
+    """
+    Rotate an image by a given degree.
+
+    :param image: original image to rotate
+    :param rotation: rotation in degrees
+    :return: rotated image
+    """
     rows, cols, _ = image.shape
     center_coords = ((cols - 1) / 2.0, (rows - 1) / 2.0)
     rot_m = cv2.getRotationMatrix2D(center_coords, rotation, 1)
@@ -102,7 +118,16 @@ def rotate_image(image, rotation=0.0):
 
 
 def add_salt_pepper_noise(image, amount=0.0):
-    # See: https://stackoverflow.com/a/30624520
+    """
+    Add salt and pepper noise to an image.
+    For RGB images it will add noise to all channels independently which
+    means noise is colored also.
+    See: https://stackoverflow.com/a/30624520
+
+    :param image: original image
+    :param amount: number of noisy pixels
+    :return: noisy image
+    """
     salt_vs_pepper = 0.5
     noisy_image = np.copy(image)
 
@@ -138,6 +163,12 @@ def adjust_brightness(image, gamma=1.0, precomputed_lut=None):
 
 
 def compute_gamma_lut(gamma=1.0):
+    """
+    Compute a lookup table for gamma correction for a given gamma factor.
+
+    :param gamma: gamma correction factor
+    :return: lookup table for gamma correction
+    """
     lut = np.empty((1, 256), np.uint8)
     for i in range(256):
         lut[0, i] = np.clip(pow(i / 255.0, gamma) * 255.0, 0, 255)
