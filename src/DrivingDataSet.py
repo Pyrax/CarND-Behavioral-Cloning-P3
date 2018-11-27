@@ -67,8 +67,10 @@ def randomly_augment_data(image, steering):
     should_adjust_brightness = random.choice([False, True])
     # should_adjust_brightness = False
     if should_adjust_brightness:
-        random_gamma = random.uniform(0.5, 2.0)
-        image = adjust_brightness(image, random_gamma)
+        rand_gamma = random.randint(0, len(precomputed_gammas) - 1)
+        image = adjust_brightness(image, precomputed_lut=precomputed_gammas[rand_gamma])
+        # random_gamma = random.uniform(0.5, 2.0)
+        # image = adjust_brightness(image, random_gamma)
 
     # Salt and pepper noise
     should_add_noise = random.choice([False, True])
@@ -79,7 +81,7 @@ def randomly_augment_data(image, steering):
     # Rotation
     rotation_range = 10.0
     random_rotation = random.uniform(-rotation_range, rotation_range)
-    image, steering = add_rotation(image, steering, random_rotation)
+    image, _ = add_rotation(image, steering, random_rotation)
     return image, steering
 
 
@@ -122,12 +124,25 @@ def adjust_brightness(image, gamma=1.0, precomputed_lut=None):
     See: https://docs.opencv.org/3.4/d3/dc1/tutorial_basic_linear_transform.html
 
     :param image: original image to be adjusted
-    :param gamma: gamma correction factor
+    :param gamma:
+        gamma correction factor
         (for gamma < 1.0 dark regions will be brighter and for gamma > 1.0 dark regions will be darker)
+    :param precomputed_lut:
+        Use a precomputed lookup table for gamma values. Can be used to reduce execution time.
+        gamma will be ignored if precomputed_lut is given.
     :return: copy of brightness adjusted image
     """
-    # approach using lookup table for best performance
+    if precomputed_lut is not None:
+        return cv2.LUT(image, precomputed_lut)
+    return cv2.LUT(image, compute_gamma_lut(gamma))
+
+
+def compute_gamma_lut(gamma=1.0):
     lut = np.empty((1, 256), np.uint8)
     for i in range(256):
         lut[0, i] = np.clip(pow(i / 255.0, gamma) * 255.0, 0, 255)
-    return cv2.LUT(image, lut)
+    return lut
+
+
+gammas = np.linspace(0.5, 2.0, 20)
+precomputed_gammas = [compute_gamma_lut(gamma) for gamma in gammas]
