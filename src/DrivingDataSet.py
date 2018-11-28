@@ -84,7 +84,7 @@ def randomly_augment_data(image, steering):
     # Salt and pepper noise
     should_add_noise = random.choice([False, True])
     if should_add_noise:
-        random_noise = random.uniform(1e-3, 9e-3)
+        random_noise = random.uniform(.2e-2, 5e-2)
         image = add_salt_pepper_noise(image, random_noise)
 
     # Rotation
