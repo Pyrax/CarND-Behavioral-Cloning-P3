@@ -19,6 +19,57 @@ def get_driving_data(log_file_csv):
                        usecols=['Center image', 'Left image', 'Right image', 'Steering'])
 
 
+def merge_camera_images(source_df, cameras=['Center', 'Left', 'Right'], camera_steering_offsets=[.0, .2, -.2],
+                        verbose=0):
+    """
+    Expands camera images which are columns of the source_df into a new data frame as rows with an offset for the
+    steering angles.
+
+    :param source_df: data frame with camera columns
+    :param cameras: specify which cameras to use, others are ignored
+    :param camera_steering_offsets: offset for each camera to apply to steering angle (in range between 0.0 and 1.0)
+    :param verbose: whether to output information about the data frames for testing
+    :return: a single data frame with a list of [image file, steering angle] composed of all specified cameras
+    """
+    camera_dfs = [
+        source_df[[f'{cam} image', 'Steering']]
+            .rename(columns={f'{cam} image': 'Image'}) \
+        for cam in cameras
+    ]
+    for idx, offset in enumerate(camera_steering_offsets):
+        camera_dfs[idx]['Steering'] += offset
+
+    # Checking that the mean steering angles are in fact different by the offset:
+    if verbose > 0:
+        means = [df['Steering'].mean() for df in camera_dfs]
+        print(f'mean steering angles by cameras:\n{cameras}\n{str(means)}\n')
+
+    # Merge all data frames into one
+    return pd.concat(camera_dfs)
+
+
+def df_add_inverted_copies(df, value_column='Steering'):
+    """
+    Takes a data frame and inserts a copy with inverted values. Also adds a new column CopyID responsible for marking
+    the number of copies of the original image for augmentation.
+    CopyID = 0 will be original image while CopyID = 1 will be flipped image.
+
+    :param df: source data frame to invert values from
+    :param value_column: name of column which contains the values which should be inverted
+    :return: new data frame with original values and new rows with inverted values
+    """
+    tmp_df = df.copy()
+    tmp_df['CopyID'] = 0
+
+    copy_df = tmp_df.copy()
+    copy_df['CopyID'] = 1
+    copy_df[value_column] *= -1
+
+    # Time to combine both data frames and reset index so that the data frame is re-indexed and eliminate duplicate
+    # indices.
+    return pd.concat([tmp_df, copy_df]).reset_index(drop=True)
+
+
 def steering_image_batch_generator(data_path, samples, batch_size=32, augment_data=False):
     """
     Generates shuffled batches of image data paired with ground-truth labels by reading
