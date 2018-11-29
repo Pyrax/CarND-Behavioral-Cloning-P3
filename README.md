@@ -2,6 +2,20 @@
 
 [![Udacity - Self-Driving Car NanoDegree](https://s3.amazonaws.com/udacity-sdc/github/shield-carnd.svg)](http://www.udacity.com/drive)
 
+[//]: # (Image References)
+
+[augment_brightness]: ./output_images/augment_brightness.jpg "Brightness augmentation"
+[augment_noise]: ./output_images/augment_noise.jpg "Salt & pepper noise augmentation"
+[augment_rotation]: ./output_images/augment_rotation.jpg "Image rotation"
+[center_steering_hist]: ./output_images/center_steering_hist.jpg "Distribution of steering angles of middle camera"
+[example_image]: ./output_images/example_image.jpg "Example of image data featuring all cameras"
+[feed_images]: ./output_images/feed_images.jpg "Images fed into the network"
+[full_steering_hist]: ./output_images/full_steering_hist.jpg "Distribution of steering angles on final data set"
+[model]: ./output_images/model.png "Visualization of model architecture"
+[model_loss]: ./output_images/model_loss.jpg "Graph of training and validation loss"
+[offset_comparison_hist]: ./output_images/offset_comparison_hist.jpg "Distribution of steering angles for different offsets"
+[roi]: ./output_images/roi.jpg "Region of interest"
+
 The Project
 ---
 The goals / steps of this project are the following:
@@ -93,3 +107,41 @@ Will run the video at 48 FPS. The default FPS is 60.
 
 Writeup
 ---
+
+### Data collection
+
+First of all, I collected driving data by recording runs of both tracks of the Udacity Simulator in forward and reverse 
+direction. I additionally recorded recovery driving from the sides of the road on each track. This helps the model to 
+recover itself when the car steers off center. 
+The recorded data set shows the following characteristics:
+
+metric | value
+-------|--------
+samples per camera | 9742
+total samples | 29226
+min steering ratio | -1.0
+max steering ratio | 1.0
+mean steering ratio | -0.0011161202688359676
+
+The following shows images by all three different cameras of an example frame:
+![example_image]
+
+Data shows that steering angles in the driving log are already normalized to be in range between -1 and 1. For 
+demonstration purpose I also want to look at the real angles which means that angles have to be scaled back. The 
+normalization code can be found here: [udacity/self-driving-car-sim](https://github.com/udacity/self-driving-car-sim/blob/bdcd588990df2db4706e772cd45d6e013631a2f2/Assets/Standard%20Assets/Vehicles/Car/Scripts/CarController.cs#L472). 
+So, all angles are divided by the maximum steering angle before logging which equals 25° in the present version of the 
+simulator.
+
+![center_steering_hist]
+
+
+
+### Data augmentation
+
+### Model architecture & Training
+
+![model]
+
+### Result
+
+### Discussion
