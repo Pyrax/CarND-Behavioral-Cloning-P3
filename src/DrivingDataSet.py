@@ -125,12 +125,10 @@ def randomly_augment_data(image, steering):
     """
     # Brightness
     should_adjust_brightness = random.choice([False, True])
-    # should_adjust_brightness = False
     if should_adjust_brightness:
+        # only choose from a list of precomputed gamma tables for reduced computation time
         random_gamma = random.randint(0, len(precomputed_gammas) - 1)
         image = adjust_brightness(image, precomputed_lut=precomputed_gammas[random_gamma])
-        # random_gamma = random.uniform(0.5, 2.0)
-        # image = adjust_brightness(image, random_gamma)
 
     # Salt and pepper noise
     should_add_noise = random.choice([False, True])
