@@ -82,14 +82,23 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     driving_df = get_driving_data(os.path.join(args.data_path, 'driving_log.csv'))
+
+    # Take columns of individual camera images and insert them as rows so that the data frame
+    # only consists of a list with 2 columns of [image_file, steering_angle]
     merged_df = merge_camera_images(driving_df, cameras=['Center', 'Left', 'Right'],
                                     camera_steering_offsets=[0.0, CAM_OFFSET, -CAM_OFFSET])
+
+    # Append a copy of each row in the data frame which represents the flipped version of the
+    # image, effectively doubling the data size. Steering angle is already inverted while
+    # flipping itself must be done in the batch generation where image data is actually read.
     full_df = df_add_inverted_copies(merged_df)
 
     train_set, validation_set = train_test_split(full_df.values, test_size=0.2)
 
+    # Generate batches of images with augmented data for training.
     train_generator = steering_image_batch_generator(args.data_path, train_set, augment_data=True)
-    validation_generator = steering_image_batch_generator(args.data_path, validation_set)
+    # Validation data is not supposed to be augmented because this should be "real" (unmodified) data.
+    validation_generator = steering_image_batch_generator(args.data_path, validation_set, augment_data=False)
 
     epoch_steps_train = len(train_set) // BATCH_SIZE
     epoch_steps_validation = len(validation_set) // BATCH_SIZE
