@@ -24,22 +24,8 @@ The goals / steps of this project are the following:
 * Use the model to drive the vehicle autonomously around the first track in the simulator. The vehicle should remain on the road for an entire loop around the track.
 * Summarize the results with a written report
 
-Dependencies
+Details About Files In This Directory
 ---
-This lab requires:
-
-* [CarND Term1 Starter Kit](https://github.com/udacity/CarND-Term1-Starter-Kit)
-
-The lab enviroment can be created with CarND Term1 Starter Kit. Click [here](https://github.com/udacity/CarND-Term1-Starter-Kit/blob/master/README.md) for the details.
-
-The following resources can be found in this github repository:
-* drive.py
-* video.py
-* writeup_template.md
-
-The simulator can be downloaded from the classroom. In the classroom, we have also provided sample data that you can optionally use to help train your model.
-
-## Details About Files In This Directory
 
 ### `drive.py`
 
@@ -108,37 +94,58 @@ Will run the video at 48 FPS. The default FPS is 60.
 Writeup
 ---
 
-### Data collection
+### Data collection & pre-processing
 
 First of all, I collected driving data by recording runs of both tracks of the Udacity Simulator in forward and reverse 
 direction. I additionally recorded recovery driving from the sides of the road on each track. This helps the model to 
 recover itself when the car steers off center. 
-The recorded data set shows the following characteristics:
 
-metric | value
--------|--------
+The following figure presents images of all three different cameras of an example frame:
+
+![example_image]
+
+The recorded data set has the following characteristics:
+
+description | value
+------------|--------
 samples per camera | 9742
+number of cameras | 3
 total samples | 29226
 min steering ratio | -1.0
 max steering ratio | 1.0
 mean steering ratio | -0.0011161202688359676
 
-The following shows images by all three different cameras of an example frame:
-![example_image]
-
 Data shows that steering angles in the driving log are already normalized to be in range between -1 and 1. For 
-demonstration purpose I also want to look at the real angles which means that angles have to be scaled back. The 
-normalization code can be found here: [udacity/self-driving-car-sim](https://github.com/udacity/self-driving-car-sim/blob/bdcd588990df2db4706e772cd45d6e013631a2f2/Assets/Standard%20Assets/Vehicles/Car/Scripts/CarController.cs#L472). 
-So, all angles are divided by the maximum steering angle before logging which equals 25° in the present version of the 
-simulator.
+demonstration purpose I also want to look at the real angles which means that angles have to be scaled back to degrees. 
+The normalization code can be found here: [udacity/self-driving-car-sim](https://github.com/udacity/self-driving-car-sim/blob/bdcd588990df2db4706e772cd45d6e013631a2f2/Assets/Standard%20Assets/Vehicles/Car/Scripts/CarController.cs#L472). 
+So, all angles are divided by the maximum steering angle by the simulator before writing to driving_log which equals 
+25° in the current version. 
+
+Here, the distribution of steering angles only for the center camera is illustrated:
 
 ![center_steering_hist]
 
+In order to take advantage of the side cameras as well, I examined how histograms look like if I insert the images of 
+the side cameras as additional samples with a fixed offset:
 
+![offset_comparison_hist]
 
-### Data augmentation
+For the final architecture I have used an offset of 0.25 as it shows a rather balanced distribution and it empirically 
+performed best while evaluating the different offsets on the same model during simulator tests.
 
-### Model architecture & Training
+Furthermore, I added a copy of each image with inverted steering angle for flipping later which has the benefit of 
+doubling the amount of data and normalizing data to zero mean. It leads to this new chart:
+
+![full_steering_hist]
+
+Moreover, a region of interest has been defined to focus on important road features and to exclude the horizon and car's 
+bonnet as demonstrated below:
+
+![roi]
+
+### Data augmentation for training
+
+### Model architecture & training
 
 ![model]
 
