@@ -16,6 +16,14 @@
 [offset_comparison_hist]: ./output_images/offset_comparison_hist.jpg "Distribution of steering angles for different offsets"
 [roi]: ./output_images/roi.jpg "Region of interest"
 
+[//]: # (References)
+
+[1]: https://github.com/udacity/self-driving-car-sim/blob/bdcd588990df2db4706e772cd45d6e013631a2f2/Assets/Standard%20Assets/Vehicles/Car/Scripts/CarController.cs#L472
+[2]: http://cs231n.stanford.edu/reports/2017/pdfs/300.pdf
+[3]: https://medium.com/nanonets/how-to-use-deep-learning-when-you-have-limited-data-part-2-data-augmentation-c26971dc8ced
+[4]: https://docs.opencv.org/3.4/d3/dc1/tutorial_basic_linear_transform.html
+[5]: https://stackoverflow.com/a/30624520
+
 The Project
 ---
 The goals / steps of this project are the following:
@@ -117,7 +125,7 @@ mean steering ratio | -0.0011161202688359676
 
 Data shows that steering angles in the driving log are already normalized to be in range between -1 and 1. For 
 demonstration purpose I also want to look at the real angles which means that angles have to be scaled back to degrees. 
-The normalization code can be found here: [udacity/self-driving-car-sim](https://github.com/udacity/self-driving-car-sim/blob/bdcd588990df2db4706e772cd45d6e013631a2f2/Assets/Standard%20Assets/Vehicles/Car/Scripts/CarController.cs#L472). 
+The normalization code can be found here: [udacity/self-driving-car-sim][1]. 
 So, all angles are divided by the maximum steering angle by the simulator before writing to driving_log which equals 
 25° in the current version. 
 
@@ -145,10 +153,35 @@ bonnet as demonstrated below:
 
 ### Data augmentation for training
 
+As described in ["The Effectiveness of Data Augmentation in Image Classification using Deep Learning"][2] even simple 
+traditional data augmentation methods like flipping, rotation or distortion can increase validation accuracy 
+significantly with a reasonable level of effort and additional computation cost. Also, with the so-called 
+["augmentation on the fly"][3] we can in theory generate an infinite amount of data although our original data set is 
+limited. This can help to reduce overfitting. 
+
+Therefore, I implemented a few augmentation techniques that are fairly simple to realize for our project's 
+domain. Those I have used in this project are: image flipping, brightness adjustment, rotation, and noise.
+These are less complicated as opposed to e.g. image shifting which requires special attention as it might change 
+meaning of our data because it modifies road features. Then, steering angles would have to be adjusted.
+
+The first method is flipping of the images that is done during batch generation where the actual image data is loaded. 
+The data frame already contains two rows for each image filename as described above. So, only the image manipulation 
+still has to be performed at generation.
+
+Next, the samples are randomly adjusted in terms of brightness using gamma correction as described in ["Changing the 
+contrast and brightness of an image!"][4]. For reduced computation costs, as data augmentation quickly becomes a 
+performance bottleneck, I have pre-computed some lookup tables for a range of different gamma values:
+
+![augment_brightness]
+
+Secondly, a random amount of salt & pepper is applied as noise as described on [StackOverflow][5]. It is (again) 
+designed for fast execution:
+
+![augment_noise]
+
+Last but not least, images are rotated by a range between `-10.0°` and `+10.0°`:
+
+![augment_rotation]
+
 ### Model architecture & training
 
-![model]
-
-### Result
-
-### Discussion
