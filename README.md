@@ -11,7 +11,6 @@
 [example_image]: ./output_images/example_image.jpg "Example of image data featuring all cameras"
 [feed_images]: ./output_images/feed_images.jpg "Images fed into the network"
 [full_steering_hist]: ./output_images/full_steering_hist.jpg "Distribution of steering angles on final data set"
-[model]: ./output_images/model.png "Visualization of model architecture"
 [model_loss]: ./output_images/model_loss.jpg "Graph of training and validation loss"
 [offset_comparison_hist]: ./output_images/offset_comparison_hist.jpg "Distribution of steering angles for different offsets"
 [roi]: ./output_images/roi.jpg "Region of interest"
@@ -23,6 +22,7 @@
 [3]: https://medium.com/nanonets/how-to-use-deep-learning-when-you-have-limited-data-part-2-data-augmentation-c26971dc8ced
 [4]: https://docs.opencv.org/3.4/d3/dc1/tutorial_basic_linear_transform.html
 [5]: https://stackoverflow.com/a/30624520
+[6]: https://images.nvidia.com/content/tegra/automotive/images/2016/solutions/pdf/end-to-end-dl-using-px.pdf
 
 The Project
 ---
@@ -104,9 +104,9 @@ Writeup
 
 ### Data collection & pre-processing
 
-First of all, I collected driving data by recording runs of both tracks of the Udacity Simulator in forward and reverse 
-direction. I additionally recorded recovery driving from the sides of the road on each track. This helps the model to 
-recover itself when the car steers off center. 
+First of all, I collected driving data by recording runs of center driving of both tracks of the Udacity Simulator in 
+forward and reverse direction. I additionally recorded recovery driving from the sides of the road on each track. 
+This helps the model to recover itself when the car steers off center. 
 
 The following figure presents images of all three different cameras of an example frame:
 
@@ -156,8 +156,8 @@ bonnet as demonstrated below:
 As described in ["The Effectiveness of Data Augmentation in Image Classification using Deep Learning"][2] even simple 
 traditional data augmentation methods like flipping, rotation or distortion can increase validation accuracy 
 significantly with a reasonable level of effort and additional computation cost. Also, with the so-called 
-["augmentation on the fly"][3] we can in theory generate an infinite amount of data although our original data set is 
-limited. This can help to reduce overfitting. 
+["augmentation on the fly"][3] (augmentation during batch generation) we can in theory generate an infinite amount of 
+data although our original data set is limited. This can help to reduce overfitting. 
 
 Therefore, I implemented a few augmentation techniques that are fairly simple to realize for our project's 
 domain. Those I have used in this project are: image flipping, brightness adjustment, rotation, and noise.
@@ -185,3 +185,109 @@ Last but not least, images are rotated by a range between `-10.0°` and `+10.0°
 
 ### Model architecture & training
 
+My model architecture is based on [NVIDIA's PilotNet model][6]. However, my initial input size for images that are fed 
+into the neural net is 160x320x3 and then gets cropped and resized to 66x200x3 images which is the input layer size in 
+the paper. Then, the image is normalized by scaling the pixels by `n/127.5 - 1.0`. Normalization layer is then followed 
+by 5 convolutional layers, 3 fully-connected layers and 1 output layer. As the NVIDIA paper does not specify the type of 
+activation functions used I decided to use ReLUs for every layer except the output layer for which I have used `tanh`. 
+Alternatively, I could have also left the activation function out after the output layer to solve our linear regression 
+problem but through hyperbolic tangent I achieved smoother steering, although loss is similar. This improvement might 
+come from `tanh` operating in the same interval between `-1.0` and `1.0` as our steering data which enables smooth 
+transitions.
+
+After each activation I have also inserted batch normalization resulting in accelerated training through faster 
+convergence and slightly reduced overfitting.
+
+This finally leads to the following model:
+```
+_________________________________________________________________
+Layer (type)                 Output Shape              Param #   
+=================================================================
+input_image (InputLayer)     (None, 160, 320, 3)       0         
+_________________________________________________________________
+image_cropping (Cropping2D)  (None, 70, 260, 3)        0         
+_________________________________________________________________
+image_resize (ResizeImages)  (None, 66, 200, 3)        0         
+_________________________________________________________________
+image_normalization (Lambda) (None, 66, 200, 3)        0         
+_________________________________________________________________
+conv1 (Conv2D)               (None, 31, 98, 24)        1824      
+_________________________________________________________________
+batch_normalization_1 (Batch (None, 31, 98, 24)        96        
+_________________________________________________________________
+conv2 (Conv2D)               (None, 14, 47, 36)        21636     
+_________________________________________________________________
+batch_normalization_2 (Batch (None, 14, 47, 36)        144       
+_________________________________________________________________
+conv3 (Conv2D)               (None, 5, 22, 48)         43248     
+_________________________________________________________________
+batch_normalization_3 (Batch (None, 5, 22, 48)         192       
+_________________________________________________________________
+conv4 (Conv2D)               (None, 3, 20, 64)         27712     
+_________________________________________________________________
+batch_normalization_4 (Batch (None, 3, 20, 64)         256       
+_________________________________________________________________
+conv5 (Conv2D)               (None, 1, 18, 64)         36928     
+_________________________________________________________________
+batch_normalization_5 (Batch (None, 1, 18, 64)         256       
+_________________________________________________________________
+flatten (Flatten)            (None, 1152)              0         
+_________________________________________________________________
+dense1 (Dense)               (None, 100)               115300    
+_________________________________________________________________
+batch_normalization_6 (Batch (None, 100)               400       
+_________________________________________________________________
+dense2 (Dense)               (None, 50)                5050      
+_________________________________________________________________
+batch_normalization_7 (Batch (None, 50)                200       
+_________________________________________________________________
+dense3 (Dense)               (None, 10)                510       
+_________________________________________________________________
+batch_normalization_8 (Batch (None, 10)                40        
+_________________________________________________________________
+output_angle (Dense)         (None, 1)                 11        
+=================================================================
+Total params: 253,803
+Trainable params: 253,011
+Non-trainable params: 792
+_________________________________________________________________
+```
+(another diagram describing the model can be found at [output_images/model.png](./output_images/model.png))
+
+As the total size of our data set is larger I have used a generator to create batches for training and validating the 
+network. The following figure shows a few samples that were fed into the network using the generator:
+
+![feed_images]
+
+Training the model is then performed using the Nadam-optimizer and mean squared error-loss. For the optimizer I had to 
+reduce the learning rate from the default value of 0.002 to 0.001. Otherwise, the model converged at higher loss and 
+testing the model sometimes even led to the model only predicting one value for any input data.
+
+Moreover, I tested to include some dropout layers in my model architecture. First, I tried to only add dropout after the 
+first fully-connected layer with a dropout probability of 0.2. Secondly, I also experimented with dropout after each 
+fully-connected layer with a probability of 0.2 on the first attempt and 0.5 and the second attempt. But, all these 
+efforts resulted in worse loss and driving performance. Hence, I did not include dropout in my final neural network.
+
+Lastly, I have evaluated the behavior of different color spaces on my model. The NVIDIA paper proposes to use YUV images 
+what caused my car to drive on the yellow lane markings instead of driving in the middle of the road. HSV and Lab also 
+caused the vehicle to steer off track. In the end, I processed images in RGB format which yields desired results.
+
+### Result
+
+Training the model for a total of 20 epochs accomplished the following MSE loss curve:
+
+![model_loss]
+
+My model is able to steer the car on itself for several rounds on both tracks and if it is manually steered away from 
+center it will find its way back to the center.
+The following two videos demonstrate the result on each track:
+- [First track](./result/first_track/output_video.mp4)
+- [Second track](./result/second_track/output_video.mp4)
+
+### Further work
+
+To improve the model further, visualization techniques like filter activation images and saliency maps could be 
+explored to see which features the model picks up best and where attention could still be improved. 
+
+Also, data augmentation could be expanded with more techniques to generate even more samples as the previously deployed 
+methods have already proven to enhance the neural network's ability to learn.
